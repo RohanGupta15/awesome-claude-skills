@@ -1,0 +1,86 @@
+name: Release
+
+# A release is made whenever VERSION changes on main (bump it for a major update), or by hand from
+# the Actions tab. It validates every skill, packages them, and publishes v<VERSION> with the notes
+# from that version's CHANGELOG.md section. A version that already has a release is skipped.
+on:
+  push:
+    branches: [main]
+    paths: [VERSION]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Read version
+        id: version
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=VERSION::VERSION must look like 1.2.3, got '$version'"
+            exit 1
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::v$version is already released; nothing to do."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate skills
+        if: steps.version.outputs.exists == 'false'
+        run: python scripts/validate_skills.py
+
+      - name: Package skills
+        if: steps.version.outputs.exists == 'false'
+        run: python -B scripts/package_skills.py --version "${{ steps.version.outputs.value }}" --out dist
+
+      - name: Release notes from CHANGELOG.md
+        if: steps.version.outputs.exists == 'false'
+        run: |
+          version="${{ steps.version.outputs.value }}"
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "::error file=CHANGELOG.md::Add a '## [$version]' section to CHANGELOG.md"
+            exit 1
+          fi
+          {
+            echo
+            echo "### Install"
+            echo
+            echo '```powershell'
+            echo "./install.ps1 -Version $version"
+            echo '```'
+            echo
+            echo 'Or extract `all-skills-v'"$version"'.zip` into `~/.claude/skills`. Each `<skill>.zip` can be uploaded to Claude.ai under Settings > Capabilities > Skills.'
+          } >> notes.md
+
+      - name: Publish release
+        if: steps.version.outputs.exists == 'false'
+        run: |
+          version="${{ steps.version.outputs.value }}"
+          gh release create "v$version" dist/* \
+            --title "v$version" \
+            --notes-file notes.md \
+            --target "$GITHUB_SHA"

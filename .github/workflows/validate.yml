@@ -1,0 +1,32 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate skills
+        run: python scripts/validate_skills.py
+
+      - name: Check VERSION is semver
+        run: grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' VERSION || { echo "::error file=VERSION::VERSION must look like 1.2.3"; exit 1; }
+
+      - name: Package (dry run)
+        run: python -B scripts/package_skills.py --version "$(cat VERSION)" --out dist
+
+      - name: Lint install.sh
+        run: shellcheck install.sh
