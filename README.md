@@ -7,6 +7,7 @@ A personal collection of [Claude skills](https://docs.claude.com/en/docs/claude-
 | Skill | What it does | Source | Licence |
 | --- | --- | --- | --- |
 | [logo-design](skills/logo-design/SKILL.md) | Logo and brand-mark design from brief to production files: discovery, concepts, clean SVG construction, 16 px and one-colour testing, presentation boards, favicon and app-icon export, guidelines. Includes a 1,400+ logo reference library and Python tools. | [kaankiziltug/logo-design-skill](https://github.com/kaankiziltug/logo-design-skill) @ `5a02a1a` (v1.4.4) | [MIT](skills/logo-design/LICENSE), library logos are [trademarks of their owners](skills/logo-design/TRADEMARKS.md) |
+| [pr-guard](skills/pr-guard/SKILL.md) | Pre-PR quality gate: reuses the project's own lint/typecheck/test commands (found once by `pr-guard init`), has a cheap model review the diff for bugs, bloat and needless comments via [ponytail](https://github.com/DietrichGebert/ponytail), relies on CodeQL in CI, reports in plain words, offers a one-shot fix, then opens the PR. | Mine | Mine |
 
 ## Install
 

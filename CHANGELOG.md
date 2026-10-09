@@ -4,6 +4,10 @@ Each version here is published as a GitHub release when `VERSION` is bumped. The
 
 ## [Unreleased]
 
+### Added
+
+- `pr-guard`, my pre-PR quality gate: project-native checks, a ponytail review, plain-words findings and a one-shot fix.
+
 ## [1.0.0] - 2026-09-30
 
 ### Added
